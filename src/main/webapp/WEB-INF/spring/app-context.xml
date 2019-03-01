@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:mvc="http://www.springframework.org/schema/mvc"
+	   xmlns:util="http://www.springframework.org/schema/util"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+     http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<context:property-placeholder location="classpath:*.properties" file-encoding="UTF-8" ignore-unresolvable="true" />
+
+	<mvc:annotation-driven/>
+
+	<import resource="app-context-without-servlet.xml"/>
+
+	<context:component-scan base-package="tw.com.stock_crawler.config"/>
+	<context:component-scan base-package="tw.com.stock_crawler.controller"/>
+
+	<!-- for passing environment variables !? -->
+	<bean id="standardServletEnvironment" class="org.springframework.web.context.support.StandardServletEnvironment">
+	</bean>
+	<bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer">
+		<property name="environment" ref="standardServletEnvironment"/>
+		<property name="ignoreResourceNotFound" value="true"/>
+		<!--<property name="locations">-->
+		<!--<list>-->
+		<!--<value>file:///${MY_ENV_VAR_PATH}/my.app.config.properties</value>-->
+		<!--</list>-->
+		<!--</property>-->
+	</bean>
+
+	<!-- interceptors -->
+	<mvc:interceptors>
+		<!-- intercepter for http cache related headers -->
+		<mvc:interceptor>
+			<mvc:mapping path="/**"/>
+			<bean id="noCacheInterceptor" class="tw.com.stock_crawler.interceptor.TestWebContentInterceptor">
+				<property name="useCacheControlHeader" value="true"/>
+				<property name="useCacheControlNoStore" value="true"/>
+				<property name="useExpiresHeader" value="true"/>
+				<property name="cacheMappings">
+					<props>
+						<!--  若值為 -1 表示不特別設定，0 表示防止快取，大於 0 的值表示要快取的秒數 -->
+						<prop key="/**">0</prop><!-- 重要: 預設把所有的網址都設為防止快取 (設為 0)，再個別一一設定 -->
+						<prop key="/resources/**">2000</prop>
+						<prop key="/robots.txt">2000</prop>
+					</props>
+				</property>
+			</bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- for multipart file uploading -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="20000000"/>
+		<property name="defaultEncoding" value="utf-8"/>
+	</bean>
+
+	<!-- BEGIN of View Resolvers -->
+
+	<!-- directory resources mapping resolvers -->
+	<mvc:resources mapping="/resources/**" location="/resources/"/>
+
+	<mvc:default-servlet-handler/>
+
+	<!-- internal resource mapping resolvers, for jsp or others-->
+	<bean id="internalResourceViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/"/>
+		<property name="suffix" value=".jsp"/>
+	</bean>
+
+	<!-- END of View Resolvers -->
+
+</beans>

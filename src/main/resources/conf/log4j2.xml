@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Log級別順序: TRACE < DEBUG < INFO < WARN < ERROR < FATAL -->
+<!-- 1. 每隔1800秒檢查配置檔案是否有變化, Note: 如此設定會在終止server拋出memory leak警告 -->
+<!-- https://mail-archives.apache.org/mod_mbox/logging-log4j-user/201512.mbox/%3Ctrinity-60f90225-a978-41f9-b240-289d6a7403ec-1450459691569@3capp-gmx-bs58%3E -->
+<!-- 2. 所有log4j2的事件訊息中，只有WARN以及其以上的級別才會被記錄 -->
+<!--<Configuration status="WARN" monitorInterval="1800">-->
+<Configuration status="WARN" monitorInterval="60" strict="true">
+    <properties>
+        <!-- ${sys:catalina.home}會取得tomcat的home directory -->
+        <property name="LOG_HOME">${sys:catalina.home}/logs/stock</property>
+        <property name="FILE_ERR_NAME">server_err_log</property>
+        <property name="FILE_INFO_NAME">server_action_log</property>
+    </properties>
+
+    <Appenders>
+        <!-- 1. 以Console mode輸出 -->
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout charset="UTF-8">
+                <Pattern>%d{HH:mm:ss.SSS} [%t] %-5level [%logger{36}:%line] => %highlight{%msg%n}{FATAL=red blink,
+                    ERROR=red, WARN=yellow bold, INFO=gray, DEBUG=green bold, TRACE=blue}
+                </Pattern>
+            </PatternLayout>
+        </Console>
+        <!-- 2. RollingRandomAccessFile表示以文件方式記錄 -->
+        <RollingRandomAccessFile name="daily_err_log"
+                                 fileName="${LOG_HOME}/${FILE_ERR_NAME}.log"
+                                 filePattern="${LOG_HOME}/$${date:yyyy-MM}/${FILE_ERR_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout charset="UTF-8">
+                <Pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} %level [%thread][%file:%line] - %msg%n</Pattern>
+        </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="10 MB" />  <!-- 每個記錄檔的最大容量為10MB -->
+            </Policies>
+            <DefaultRolloverStrategy max="20" />    <!-- 表示壓縮檔最多保留20個 -->
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="action_info_log"
+                                 fileName="${LOG_HOME}/${FILE_INFO_NAME}.log"
+                                 filePattern="${LOG_HOME}/$${date:yyyy-MM}/${FILE_INFO_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout charset="UTF-8">
+                <Pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} %level [%thread][%file:%line] - %msg%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="20 MB" />  <!-- 每個記錄檔的最大容量為20MB -->
+            </Policies>
+            <DefaultRolloverStrategy max="50" />    <!-- 表示壓縮檔最多保留20個 -->
+            <!-- http://stackoverflow.com/questions/26108045/how-to-log-only-one-level-with-log4j2 -->
+            <Filters>
+                <!-- First deny warn, error and fatal messages -->
+                <ThresholdFilter level="WARN"  onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <!--<ThresholdFilter level="fatal" onMatch="DENY" onMismatch="NEUTRAL"/>-->
+                <!-- Then accept info, warn, error, fatal and deny debug/trace -->
+                <ThresholdFilter level="info"  onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </RollingRandomAccessFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- 定義新的Logger，日誌級別為TRACE以及其以上的級別才會被記錄 -->
+        <!-- additivity=true表示ERROR以及其以上級別的紀錄，除了會被該Logger紀錄，亦會讓Root Logger中設定的Logger紀錄；
+             若為false，Root Logger不起作用 -->
+        <Logger name="com.cnblogs.yjmyzz.App2" level="trace"
+                additivity="true">
+            <AppenderRef ref="daily_err_log" />
+        </Logger>
+        <!-- Log the parameter substitutions in the SQL statement. Unfortunately logging org.hibernate gives a lot of other junk as well -->
+        <Logger name="org.hibernate" level="WARN">
+        </Logger>
+        <!-- Log the real SQL -->
+        <Logger name="org.hibernate.SQL" level="WARN">
+        </Logger>
+        <!-- Log the actual Hibernate Query Language (HQL) expression -->
+        <!--<Logger name="org.hibernate.impl.SessionImpl" level="WARN">-->
+        <!--</Logger>-->
+        <!-- Log the substitution parameters in the HQL expression -->
+        <!--<Logger name="org.hibernate.engine.QueryParameters" level="WARN">-->
+        <!--</Logger>-->
+        <!-- spring framework -->
+        <Logger name="org.springframework" level="WARN">
+        </Logger>
+        <!-- 輸出 JdbcTemplate 所執行之 sql 與過程 (會有大量訊息，一般不建議開啟)-->
+        <Logger name="org.springframework.jdbc.core.JdbcTemplate" level="WARN">
+        </Logger>
+        <!-- ehcache -->
+        <Logger name="net.sf.ehcache" level="WARN">
+        </Logger>
+        <!-- commons -->
+        <Logger name="org.apache.commons" level="WARN">
+        </Logger>
+        <!-- tiles -->
+        <Logger name="org.apache.tiles" level="WARN">
+        </Logger>
+        <!-- httpcomponents -->
+        <Logger name="org.apache.http" level="WARN">
+        </Logger>
+        <!-- BEGIN of logger settings for code in this project -->
+        <Logger name="tw.com.gips.uwb.project" level="INFO">
+        </Logger>
+        <Logger name="tw.com.gips.uwb.project.security.custom.MyHttpSessionSecurityContextRepository" level="WARN">
+        </Logger>
+        <Logger name="tw.com.gips.uwb.project.interceptor.MyWebContentInterceptor" level="WARN">
+        </Logger>
+        <Logger name="tw.com.gips.uwb.project.security.custom.MyRestorableSessionRegistryImpl" level="INFO">
+        </Logger>
+        <!-- END of logger settings for code in this project -->
+        <!-- Root Logger: 所有TRACE以及其以上的級別的日誌才會被記錄 -->
+        <Root level="TRACE"><!-- NOTE: Root 的 level 值是無法影響其它有明確設定 level 的 Logger -->
+            <AppenderRef ref="console" level="TRACE" />  <!-- 所有TRACE以及其以上級別的訊息才會被輸出  -->
+            <AppenderRef ref="daily_err_log" level="ERROR" /> <!-- 所有ERROR以及其以上級別的訊息才會被輸出 -->
+            <AppenderRef ref="action_info_log" level="INFO" /> <!-- 所有ERROR以及其以上級別的訊息才會被輸出 -->
+        </Root>
+    </Loggers>
+</Configuration>

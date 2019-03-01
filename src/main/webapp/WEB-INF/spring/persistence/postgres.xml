@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd">
+	<!-- Begin: Spring JPA setting -->
+	<jpa:repositories base-package="tw.com.stock_crawler.db.repository"
+					  entity-manager-factory-ref="entityManagerFactory"
+					  transaction-manager-ref="transactionManager"/>
+	<!-- 自訂Repository的implementation類別預設以Impl結尾，若否則可利用repository-impl-postfix定義類別名稱結尾 -->
+	<!--<jpa:repositories base-package="com.gips.db.repositories" repository-impl-postfix="Impl" />-->
+	<bean id="transactionManager"
+		  class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="entityManagerFactory"/>
+	</bean>
+	<bean id="entityManagerFactory"
+		  class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="packagesToScan" value="tw.com.stock_crawler.db.entity"/>
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
+		</property>
+		<property name="jpaProperties">
+			<props>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+				<prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQL94Dialect</prop>
+				<prop key="hibernate.show_sql">false</prop>
+			</props>
+		</property>
+	</bean>
+
+	<!-- Data source with connection pool -->
+	<!-- Development settings -->
+	<beans profile="dev">
+		<bean id="dataSource" destroy-method="close"
+			  class="org.apache.commons.dbcp2.BasicDataSource">
+			<property name="driverClassName" value="org.postgresql.Driver"/>
+			<property name="url" value="jdbc:postgresql://localhost:5432/stock"/>
+			<property name="username" value="postgres"/>
+			<property name="password" value="Gips80431157@"/>
+			<!-- Add the following line to avoid isValid() is not yet implemented exception -->
+			<!-- ref.: https://github.com/brettwooldridge/HikariCP/issues/225 -->
+			<!-- ref.: https://commons.apache.org/proper/commons-dbcp/configuration.html -> validationQuery -->
+			<property name="validationQuery" value="SELECT 1"/>
+			<property name="testOnBorrow" value="true"/>
+			<property name="testWhileIdle" value="true"/>
+			<property name="testOnReturn" value="true"/>
+			<property name="logAbandoned" value="true"/>
+		</bean>
+	</beans>
+</beans>

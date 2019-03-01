@@ -1,0 +1,6 @@
+# 上市每日成交資訊
+http://www.twse.com.tw/exchangeReport/STOCK_DAY_ALL?response=json
+response: json, csv, ...
+# 上櫃每日成交資訊
+http://www.tpex.org.tw/web/stock/aftertrading/DAILY_CLOSE_quotes/stk_quote_result.php?l=zh-tw&o=json
+o: json, data(csv)
